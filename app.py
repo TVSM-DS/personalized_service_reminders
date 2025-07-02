@@ -119,7 +119,9 @@ def generate_pitch(customer_name: str, customer_care_executive: str, customer_se
   
 
 app = Flask('personalized_pitch')
-
+@app.route('/api/hello', methods=['GET'])
+def hello():
+    return jsonify({"message": "Personalized service remainder running"})
 @app.route('/smr/segmentation/pitches', methods=['POST'])
 def generate_personalized_pitches():
     pitch_dict = {}
