@@ -1,10 +1,10 @@
-uvicorn
+# uvicorn
 Flask
 gunicorn
 openai
 pyspark
-requests
-uvicorn
+# requests
+# uvicorn
 # protobuf==3.20.0
 # streamlit==1.25.0
 # azure-storage-blob
