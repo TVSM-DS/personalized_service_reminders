@@ -1,6 +1,6 @@
 print("Import libraries")
 from flask import Flask, request, jsonify
-#import requests
+import requests
 import os, sys
 import json
 from pyspark.sql.functions import date_format,to_date, to_timestamp, col;
@@ -103,13 +103,13 @@ def generate_pitch(customer_name: str, customer_care_executive: str, customer_se
     try:
         url = f"{endpoint}openai/deployments/{deployment}/chat/completions?api-version={api_version}"
 
-        response = request.post(url, headers=headers, data=json.dumps(data))
+        response = requests.post(url, headers=headers, data=json.dumps(data))
         response.raise_for_status()  # Raise an HTTPError for bad responses (4xx or 5xx status codes)
 
         result = response.json()
         pitch = result['choices'][0]['message']['content'].strip()
         return pitch
-    except request.exceptions.HTTPError as err:
+    except requests.exceptions.HTTPError as err:
         print(f"HTTP error occurred: {err}")
         print(f"Response content: {response.text}") # Print raw response for detailed debugging
         return f"Error generating pitch due to an HTTP issue: {err}"
@@ -181,6 +181,6 @@ def generate_personalized_pitches():
         pitch_dict['pitch'] = pitch
     return jsonify(pitch_dict)
 
-if __name__ == '__main__':
-    #app.run()
-    app.run(host='0.0.0.0', port=5000, debug=True)
+# if __name__ == '__main__':
+#     #app.run()
+#     app.run(host='0.0.0.0', port=5000, debug=True)
