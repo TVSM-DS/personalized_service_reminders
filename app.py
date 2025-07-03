@@ -181,6 +181,6 @@ def generate_personalized_pitches():
         pitch_dict['pitch'] = pitch
     return jsonify(pitch_dict)
 
-# if __name__ == '__main__':
-#     #app.run()
+if __name__ == '__main__':
+    app.run()
 #     app.run(host='0.0.0.0', port=5000, debug=True)
