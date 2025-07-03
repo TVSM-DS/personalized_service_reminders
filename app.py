@@ -1,12 +1,40 @@
-print("Import libraries")
 from flask import Flask, request, jsonify
-from pyspark.sql import SparkSession
-# import requests
-import os, sys
+import os
 import json
-from pyspark.sql.functions import date_format,to_date, to_timestamp, col
+import pandas as pd
+from databricks.sql import connect as databricks_connect
 
+app = Flask('personalized_pitch')
+DB_SERVER_HOSTNAME = os.getenv("DATABRICKS_SERVER_HOSTNAME")
+DB_HTTP_PATH = os.getenv("DATABRICKS_HTTP_PATH")
+DB_ACCESS_TOKEN = os.getenv("DATABRICKS_TOKEN")
+def get_data_from_databricks(reg_no: str):
+    query = f"SELECT * FROM vision_dev.sandbox.map_t_srv_mrkt_smr_all_dealers_daily_digi_app_july_2025_version_6_cluster WHERE REG_NO = '{reg_no}'"
+    if not all([DB_SERVER_HOSTNAME, DB_HTTP_PATH, DB_ACCESS_TOKEN]):
+        print("Databricks connection details not set in environment variables.")
+        # Consider raising an exception or returning a more informative error
+        return None
 
+    try:
+        # CORRECT USAGE: Call the imported 'connect' function directly
+        with databricks_connect(
+            server_hostname=DB_SERVER_HOSTNAME,
+            http_path=DB_HTTP_PATH,
+            access_token=DB_ACCESS_TOKEN
+        ) as connection:
+            print("Successfully connected to Databricks SQL Warehouse.")
+            with connection.cursor() as cursor:
+                print(f"Executing query: {query}")
+                cursor.execute(query)
+                results = cursor.fetchall()
+                columns = [desc[0] for desc in cursor.description]
+                return pd.DataFrame(results, columns=columns)
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        print(f"Error querying Databricks: {e}")
+        return None
 def generate_pitch(customer_name: str, customer_care_executive: str, customer_segment: str, remaining_amc_services: float,
                    expected_service_type: str, last_interaction_months: int,
                    sale_series: str, customer_type: str,
@@ -119,77 +147,85 @@ def generate_pitch(customer_name: str, customer_care_executive: str, customer_se
         return f"An unexpected error occurred while generating the pitch: {err}"
   
 
-app = Flask('personalized_pitch')
-@app.route('/', methods=['GET'])
-def hello():
-    return jsonify({"message": "Personalized service remainder running!!!!"})
-@app.route('/smr/segmentation/pitches', methods=['POST'])
-def generate_personalized_pitches():
-    pitch_dict = {}
-    pitch_dict = {'customer_name': 'SIDDAPPA', 'segment_name': 'free_service_maximisers', 'model': 'XL 100', 'vehicle_age': 5, 'last_service_date': '01 Mar, 2021', 'last_interaction_months': '51', 'expected_service_date': '13 Jul, 2025', 'registration_no': 'KA45EC0087', 'pitch': "- **Hi there! Just a quick reminder:** Your TVS vehicle is due for its service. Keeping it in top shape ensures smooth rides and safety. \n\n- **Let's make it easy for you:** We offer free pick-up and drop services, so you don't have to worry about bringing your vehicle to us. Just sit back and relax!\n\n- **Save on service costs:** Consider our AMC plans. They help reduce the overall cost of maintaining your vehicle and keep it running smoothly without breaking the bank.\n\n- **You're in good hands:** Our trained TVS technicians know your vehicle inside out and will take great care of it. You can trust them to do a great job!\n\n- **Quick and hassle-free:** Our service is fast, so you won't be without your vehicle for long. Book your appointment now and get back on the road in no time!"}
-    # spark = SparkSession.builder \
-    #     .appName("PySparkDataFrameInitialization") \
-    #     .getOrCreate()
-    # data = [pitch_dict]
-    # df = spark.createDataFrame(data)
 
+def generate_personalized_pitches(reg_no):
     
-    data = request.json
-    print("in : ",data)
-    reg_no= data['reg_no']   
     # df = spark.sql("""
     # SELECT *
-    # FROM sandbox.map__srv_mrkt_smr_all_dealers_daily_digi_app_july_2025_version_6_cluster WHERE REG_NO = '{}' """.format(reg_no))
-    # endpoint = os.getenv("ENDPOINT_URL", "https://tvsmazoogiboaidev01-ds-cin-svcmatea.openai.azure.com/")
-    # deployment = os.getenv("DEPLOYMENT_NAME", "gpt-4o-2")
-    # subscription_key = os.getenv("AZURE_OPENAI_API_KEY", "D9WwHmUBkuymKMHeQQ4LdAIplbQLR0XlDsZmuQbtKAMTpu3IBkUNJQQJ99BAAC77bzfXJ3w3AAABACOGAtmH")
-    # api_version="2025-01-01-preview"
-    # customers_from_df = df.select(
-    # col("CUSTOMER_NAME"),
-    # col("DEALER_NAME"),
-    # col("segment_name"),
-    # col("REMAINING_AMC_SERVICES"),
-    # col("EXPECTED_SERVICE_TYPE"),
-    # col("LAST_INTERACTION").alias("last_interaction_months"), # Assuming LAST_INTERACTION is in months
-    # col("SALE_SERIES"),
-    # col("CUSTOMER_TYPE"),
-    # col("VEHICLE_AGE_YEAR"),
-    # col("EXPECTED_SERVICE_DATE"),
-    # col("N_VISIT_DATE"),
-    # col("REG_NO")
-    # ).collect()
-    # customers = [row.asDict() for row in customers_from_df]
-    # for customer in customers:
-    #     pitch = generate_pitch(
-    #         customer_name=customer["CUSTOMER_NAME"],
-    #         customer_care_executive=customer["DEALER_NAME"],
-    #         customer_segment=customer["segment_name"],
-    #         remaining_amc_services=customer["REMAINING_AMC_SERVICES"],
-    #         expected_service_type=customer["EXPECTED_SERVICE_TYPE"],
-    #         last_interaction_months=customer["last_interaction_months"],
-    #         sale_series=customer["SALE_SERIES"],
-    #         customer_type=customer["CUSTOMER_TYPE"],
-    #         endpoint=endpoint,
-    #         deployment=deployment,
-    #         subscription_key=subscription_key,
-    #         api_version=api_version
-    #     )
-    #     # Print the generated pitch, clearly indicating the customer and their segment
-    #     print(f"\n--- Customer Care Executive: {customer['DEALER_NAME']}  Customer: {customer['CUSTOMER_NAME']} ({customer['segment_name']}) ---")
-    #     print(f"Vehicle: {customer['SALE_SERIES']}, Last Interaction: {customer['last_interaction_months']} months ago, AMC: {customer['REMAINING_AMC_SERVICES']}, Expected: {customer['EXPECTED_SERVICE_TYPE']}")
-    #     print(f"Pitch Points: {pitch}")
-    #     print("----------------------------------------------------------------")
-    #     pitch_dict['customer_name'] = customer['CUSTOMER_NAME']
-    #     pitch_dict['segment_name'] = customer['segment_name']
-    #     pitch_dict['model'] = customer['SALE_SERIES']
-    #     pitch_dict['vehicle_age'] = customer['VEHICLE_AGE_YEAR']
-    #     pitch_dict['last_service_date'] = customer['N_VISIT_DATE']
-    #     pitch_dict['last_interaction_months'] = customer['last_interaction_months']
-    #     pitch_dict['expected_service_date'] = customer['EXPECTED_SERVICE_DATE']
-    #     pitch_dict['registration_no'] = customer['REG_NO']
-    #     pitch_dict['pitch'] = pitch
+    # FROM sandbox.map_t_srv_mrkt_smr_all_dealers_daily_digi_app_july_2025_version_6_cluster WHERE REG_NO = '{}' """.format(reg_no))
+    df = get_data_from_databricks(reg_no)
+    print(df)
+    endpoint = os.getenv("ENDPOINT_URL")
+    deployment = os.getenv("DEPLOYMENT_NAME")
+    subscription_key = os.getenv("AZURE_OPENAI_API_KEY")
+    api_version="2025-01-01-preview"
+    
+    customers_df = df[[
+    "CUSTOMER_NAME",
+    "DEALER_NAME",
+    "segment_name",
+    "REMAINING_AMC_SERVICES",
+    "EXPECTED_SERVICE_TYPE",
+    "LAST_INTERACTION", # We'll rename this *after* selection or directly use it
+    "SALE_SERIES",
+    "CUSTOMER_TYPE",
+    "VEHICLE_AGE_YEAR",
+    "EXPECTED_SERVICE_DATE",
+    "N_VISIT_DATE",
+    "REG_NO"
+]].copy() # .copy() to avoid SettingWithCopyWarning if you modify customers_df later
+
+    # Rename 'LAST_INTERACTION' to 'last_interaction_months'
+    customers_df = customers_df.rename(columns={"LAST_INTERACTION": "last_interaction_months"})
+
+
+    # 2. Iterate through rows (similar to PySpark's collect() and asDict())
+    # You can iterate over DataFrame rows using .itertuples() or .iterrows()
+    # .to_dict(orient='records') converts the DataFrame into a list of dictionaries,
+    # which is the most direct equivalent to PySpark's collect() + asDict()
+    customers = customers_df.to_dict(orient='records')
+
+    pitch_dict = {} # This will only store the details of the LAST processed customer
+
+    for customer in customers:
+        pitch = generate_pitch(
+            customer_name=customer["CUSTOMER_NAME"],
+            customer_care_executive=customer["DEALER_NAME"],
+            customer_segment=customer["segment_name"],
+            remaining_amc_services=customer["REMAINING_AMC_SERVICES"],
+            expected_service_type=customer["EXPECTED_SERVICE_TYPE"],
+            last_interaction_months=customer["last_interaction_months"],
+            sale_series=customer["SALE_SERIES"],
+            customer_type=customer["CUSTOMER_TYPE"],
+            endpoint=endpoint,
+            deployment=deployment,
+            subscription_key=subscription_key,
+            api_version=api_version
+        )
+        print(f"\n--- Customer Care Executive: {customer['DEALER_NAME']}  Customer: {customer['CUSTOMER_NAME']} ({customer['segment_name']}) ---")
+        print(f"Vehicle: {customer['SALE_SERIES']}, Last Interaction: {customer['last_interaction_months']} months ago, AMC: {customer['REMAINING_AMC_SERVICES']}, Expected: {customer['EXPECTED_SERVICE_TYPE']}")
+        print(f"Pitch Points: {pitch}")
+        print("----------------------------------------------------------------")
+
+        
+        
+        pitch_dict = { 
+            'customer_name': customer['CUSTOMER_NAME'],
+            'segment_name': customer['segment_name'],
+            'model': customer['SALE_SERIES'],
+            'vehicle_age': customer['VEHICLE_AGE_YEAR'],
+            'last_service_date': customer['N_VISIT_DATE'],
+            'last_interaction_months': customer['last_interaction_months'],
+            'expected_service_date': customer['EXPECTED_SERVICE_DATE'],
+            'registration_no': customer['REG_NO'],
+            'pitch': pitch
+        }
+        print(pitch_dict)
     return jsonify(pitch_dict)
 
 if __name__ == '__main__':
     app.run()
-#     app.run(host='0.0.0.0', port=5000, debug=True)
+    
+    # with app.app_context():
+    #     print(generate_personalized_pitches("KA45EC0087"))
+    #     app.run(host='0.0.0.0', port=5000, debug=True)

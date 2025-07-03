@@ -2,7 +2,7 @@
 Flask
 gunicorn
 openai
-pyspark
+databricks-sql-connector
 # requests
 # uvicorn
 # protobuf==3.20.0
