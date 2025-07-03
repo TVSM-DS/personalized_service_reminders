@@ -152,8 +152,10 @@ app = Flask('personalized_pitch')
 def hello():
     return jsonify({"message": "Personalized service remainder running!!!!3"})
 @app.route('/smr/segmentation/pitches', methods=['POST'])
-def generate_personalized_pitches(reg_no):
-    
+def generate_personalized_pitches():
+    data = request.json
+    print("in : ",data)
+    reg_no= data['reg_no']  
     # df = spark.sql("""
     # SELECT *
     # FROM sandbox.map_t_srv_mrkt_smr_all_dealers_daily_digi_app_july_2025_version_6_cluster WHERE REG_NO = '{}' """.format(reg_no))
