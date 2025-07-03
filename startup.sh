@@ -6,10 +6,10 @@ echo "Listing files in current directory:"
 ls -la
 
 echo "Installing Python dependencies from requirements.txt..."
-# Use 'pip3' explicitly for Python 3 environments for clarity
+# Use 'pip3 explicitly for Python 3 environments for clarity
 # Add -v for verbose output to see what pip is doing
 # Use --no-cache-dir to prevent issues with cached packages if they get corrupted
-pip3 install -r requirements.txt --no-cache-dir
+pip install -r requirements.txt --no-cache-dir
 
 # Check if pip install failed and exit if it did
 if [ $? -ne 0 ]; then
@@ -19,7 +19,7 @@ fi
 echo "Python dependencies installed successfully."
 
 echo "Verifying 'requests' installation:"
-pip3 freeze | grep requests
+pip freeze | grep requests
 if [ $? -ne 0 ]; then
     echo "ERROR: 'requests' module not found after installation attempt!"
     exit 1
