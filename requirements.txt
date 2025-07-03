@@ -1,7 +1,7 @@
 Flask==2.3.3
 gunicorn==21.2.0 
 openai==1.35.3
-requests==2.31.0
+requests
 pyspark
 protobuf==3.20.0
 pandas==1.5.3
