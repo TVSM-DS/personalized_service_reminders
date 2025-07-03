@@ -147,7 +147,11 @@ def generate_pitch(customer_name: str, customer_care_executive: str, customer_se
         return f"An unexpected error occurred while generating the pitch: {err}"
   
 
-
+app = Flask('personalized_pitch')
+@app.route('/', methods=['GET'])
+def hello():
+    return jsonify({"message": "Personalized service remainder running!!!!3"})
+@app.route('/smr/segmentation/pitches', methods=['POST'])
 def generate_personalized_pitches(reg_no):
     
     # df = spark.sql("""
