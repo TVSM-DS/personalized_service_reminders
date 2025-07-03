@@ -2,7 +2,7 @@ Flask
 gunicorn
 openai
 pyspark
-requests
+#requests
 # protobuf==3.20.0
 # streamlit==1.25.0
 # azure-storage-blob
