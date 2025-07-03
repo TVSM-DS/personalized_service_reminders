@@ -3,7 +3,7 @@ Flask
 gunicorn
 openai
 databricks-sql-connector
-# requests
+requests
 # uvicorn
 # protobuf==3.20.0
 # streamlit==1.25.0

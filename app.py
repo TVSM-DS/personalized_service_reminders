@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-import os
+import os, requests
 import json
 import pandas as pd
 from databricks.sql import connect as databricks_connect
@@ -132,13 +132,13 @@ def generate_pitch(customer_name: str, customer_care_executive: str, customer_se
     try:
         url = f"{endpoint}openai/deployments/{deployment}/chat/completions?api-version={api_version}"
 
-        response = request.post(url, headers=headers, data=json.dumps(data))
+        response = requests.post(url, headers=headers, data=json.dumps(data))
         response.raise_for_status()  # Raise an HTTPError for bad responses (4xx or 5xx status codes)
 
         result = response.json()
         pitch = result['choices'][0]['message']['content'].strip()
         return pitch
-    except request.exceptions.HTTPError as err:
+    except requests.exceptions.HTTPError as err:
         print(f"HTTP error occurred: {err}")
         print(f"Response content: {response.text}") # Print raw response for detailed debugging
         return f"Error generating pitch due to an HTTP issue: {err}"
@@ -150,10 +150,10 @@ def generate_pitch(customer_name: str, customer_care_executive: str, customer_se
 app = Flask('personalized_pitch')
 @app.route('/', methods=['GET'])
 def hello():
-    return jsonify({"message": "Personalized service remainder running!!!!3"})
+    return jsonify({"message": "Personalized service remainder running!!!!33"})
 @app.route('/smr/segmentation/pitches', methods=['POST'])
 def generate_personalized_pitches():
-    data = request.json
+    data = requests.json
     print("in : ",data)
     reg_no= data['reg_no']  
     # df = spark.sql("""
