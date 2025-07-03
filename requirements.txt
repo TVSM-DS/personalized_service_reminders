@@ -1,8 +1,8 @@
-requests
-Flask==2.3.3
-gunicorn==21.2.0 
-openai==1.35.3
+Flask
+gunicorn
+openai
 pyspark
+requests
 # protobuf==3.20.0
 # streamlit==1.25.0
 # azure-storage-blob
