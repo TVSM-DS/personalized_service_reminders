@@ -1,17 +1,34 @@
 #!/bin/bash
 
-echo "--- Starting startup.sh ---"
-echo "Installing Python dependencies..."
-# This command is crucial. Use 'pip3' for explicit Python 3 if needed.
-pip install -r requirements.txt
-# If the above line fails, the script will continue. Add error checking:
+echo "--- Starting startup.sh on $(date) ---"
+echo "Current directory: $(pwd)"
+echo "Listing files in current directory:"
+ls -la
+
+echo "Installing Python dependencies from requirements.txt..."
+# Use 'pip3' explicitly for Python 3 environments for clarity
+# Add -v for verbose output to see what pip is doing
+# Use --no-cache-dir to prevent issues with cached packages if they get corrupted
+pip3 install -r requirements.txt --no-cache-dir
+
+# Check if pip install failed and exit if it did
 if [ $? -ne 0 ]; then
-    echo "ERROR: Failed to install Python dependencies."
-    exit 1 # Exit with an error code
+    echo "ERROR: pip install failed. Check logs above for details."
+    exit 1
 fi
-echo "Dependencies installed successfully."
+echo "Python dependencies installed successfully."
+
+echo "Verifying 'requests' installation:"
+pip3 freeze | grep requests
+if [ $? -ne 0 ]; then
+    echo "ERROR: 'requests' module not found after installation attempt!"
+    exit 1
+else
+    echo "'requests' module verified."
+fi
 
 echo "Starting Gunicorn..."
-# Ensure 'app:app' correctly points to your Flask app object
+# Ensure 'app:app' correctly points to your Flask app object (e.g., myapp:app if in myapp.py)
 gunicorn --bind 0.0.0.0:${WEBSITES_PORT:-8000} app:app
-echo "Gunicorn command executed."
+
+echo "Gunicorn command issued. Check Gunicorn's own logs for further app startup."
