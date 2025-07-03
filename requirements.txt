@@ -1,7 +1,7 @@
+requests
 Flask==2.3.3
 gunicorn==21.2.0 
 openai==1.35.3
-requests
 pyspark
 # protobuf==3.20.0
 # streamlit==1.25.0

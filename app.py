@@ -3,7 +3,6 @@ import requests
 import os, sys
 import json
 from pyspark.sql.functions import date_format,to_date, to_timestamp, col;
-from collections import OrderedDict
 
 
 def generate_pitch(customer_name: str, customer_care_executive: str, customer_segment: str, remaining_amc_services: float,
