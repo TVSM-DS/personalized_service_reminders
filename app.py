@@ -153,9 +153,11 @@ def hello():
     return jsonify({"message": "Personalized service remainder running!!!!33"})
 @app.route('/smr/segmentation/pitches', methods=['POST'])
 def generate_personalized_pitches():
-    data = requests.json
+    #data = requests.json
+    data = request.get_json()
     print("in : ",data)
     reg_no= data['reg_no']  
+    print("reg_noreg_noreg_noreg_no : ",reg_no)
     # df = spark.sql("""
     # SELECT *
     # FROM sandbox.map_t_srv_mrkt_smr_all_dealers_daily_digi_app_july_2025_version_6_cluster WHERE REG_NO = '{}' """.format(reg_no))
@@ -164,6 +166,7 @@ def generate_personalized_pitches():
     endpoint = os.getenv("ENDPOINT_URL")
     deployment = os.getenv("DEPLOYMENT_NAME")
     subscription_key = os.getenv("AZURE_OPENAI_API_KEY")
+    print("endpointendpointendpointendpoint ", endpoint)
     api_version="2025-01-01-preview"
     
     customers_df = df[[
