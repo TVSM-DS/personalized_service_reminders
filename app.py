@@ -3,7 +3,6 @@ import os, requests
 import json
 import pandas as pd
 from databricks.sql import connect as databricks_connect
-
 app = Flask('personalized_pitch')
 DB_SERVER_HOSTNAME = os.getenv("DATABRICKS_SERVER_HOSTNAME")
 DB_HTTP_PATH = os.getenv("DATABRICKS_HTTP_PATH")
@@ -12,7 +11,6 @@ def get_data_from_databricks(reg_no: str):
     query = f"SELECT * FROM vision_dev.sandbox.map_t_srv_mrkt_smr_all_dealers_daily_digi_app_july_2025_version_6_cluster WHERE REG_NO = '{reg_no}'"
     if not all([DB_SERVER_HOSTNAME, DB_HTTP_PATH, DB_ACCESS_TOKEN]):
         print("Databricks connection details not set in environment variables.")
-        # Consider raising an exception or returning a more informative error
         return None
 
     try:
@@ -145,57 +143,79 @@ def generate_pitch(customer_name: str, customer_care_executive: str, customer_se
     except Exception as err:
         print(f"An unexpected error occurred: {err}")
         return f"An unexpected error occurred while generating the pitch: {err}"
-  
+ 
+def load_pitches_from_json(file_path="static_pitches_60sec.json"):
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            pitches_data = json.load(f)
+        return pitches_data
+    except FileNotFoundError:
+        print(f"Error: The file '{file_path}' was not found.")
+        return {}
+    except json.JSONDecodeError:
+        print(f"Error: Could not decode JSON from '{file_path}'. Check file format.")
+        return {}
+    except Exception as e:
+        print(f"An unexpected error occurred while loading the JSON file: {e}")
+        return {} 
 
 app = Flask('personalized_pitch')
 @app.route('/', methods=['GET'])
 def hello():
-    return jsonify({"message": "Personalized service remainder running!!!!33"})
+    return jsonify({"message": "Personalized service remainder running!!!!54"})
 @app.route('/smr/segmentation/pitches', methods=['POST'])
 def generate_personalized_pitches():
-    #data = requests.json
     data = request.get_json()
-    print("in : ",data)
-    reg_no= data['reg_no']  
-    print("reg_noreg_noreg_noreg_no : ",reg_no)
-    # df = spark.sql("""
-    # SELECT *
-    # FROM sandbox.map_t_srv_mrkt_smr_all_dealers_daily_digi_app_july_2025_version_6_cluster WHERE REG_NO = '{}' """.format(reg_no))
+    reg_no = data['reg_no']
+    lang = data['lang']  
+    platform = data['platform']
+    duration = data['duration']
     df = get_data_from_databricks(reg_no)
-    print(df)
-    endpoint = os.getenv("ENDPOINT_URL")
-    deployment = os.getenv("DEPLOYMENT_NAME")
-    subscription_key = os.getenv("AZURE_OPENAI_API_KEY")
-    print("endpointendpointendpointendpoint ", endpoint)
-    api_version="2025-01-01-preview"
-    
     customers_df = df[[
     "CUSTOMER_NAME",
     "DEALER_NAME",
     "segment_name",
     "REMAINING_AMC_SERVICES",
     "EXPECTED_SERVICE_TYPE",
-    "LAST_INTERACTION", # We'll rename this *after* selection or directly use it
+    "LAST_INTERACTION",
     "SALE_SERIES",
     "CUSTOMER_TYPE",
     "VEHICLE_AGE_YEAR",
     "EXPECTED_SERVICE_DATE",
     "N_VISIT_DATE",
     "REG_NO"
-]].copy() # .copy() to avoid SettingWithCopyWarning if you modify customers_df later
-
-    # Rename 'LAST_INTERACTION' to 'last_interaction_months'
+]].copy() 
     customers_df = customers_df.rename(columns={"LAST_INTERACTION": "last_interaction_months"})
-
-
-    # 2. Iterate through rows (similar to PySpark's collect() and asDict())
-    # You can iterate over DataFrame rows using .itertuples() or .iterrows()
-    # .to_dict(orient='records') converts the DataFrame into a list of dictionaries,
-    # which is the most direct equivalent to PySpark's collect() + asDict()
     customers = customers_df.to_dict(orient='records')
+    pitch_dict = {}
+    if platform == "personalised_pitch":
+        if duration == 60 :
+            all_pitches = load_pitches_from_json()
+        else:
+            all_pitches = load_pitches_from_json("static_pitches_60sec.json")
+        for customer in customers:
+            pitch = all_pitches[customer["segment_name"]][lang]
+            pitch_dict = { 
+            'customer_name': customer['CUSTOMER_NAME'],
+            'segment_name': customer['segment_name'],
+            'model': customer['SALE_SERIES'],
+            'vehicle_age': customer['VEHICLE_AGE_YEAR'],
+            'last_service_date': customer['N_VISIT_DATE'],
+            'last_interaction_months': customer['last_interaction_months'],
+            'expected_service_date': customer['EXPECTED_SERVICE_DATE'],
+            'registration_no': customer['REG_NO'],
+            'pitch': pitch
+            }
+            print(pitch_dict)
+            return jsonify(pitch_dict)
+        
+    
 
-    pitch_dict = {} # This will only store the details of the LAST processed customer
-
+    
+    endpoint = os.getenv("ENDPOINT_URL")
+    deployment = os.getenv("DEPLOYMENT_NAME")
+    subscription_key = os.getenv("AZURE_OPENAI_API_KEY")
+    api_version="2025-01-01-preview"
     for customer in customers:
         pitch = generate_pitch(
             customer_name=customer["CUSTOMER_NAME"],

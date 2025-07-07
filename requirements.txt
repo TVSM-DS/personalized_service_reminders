@@ -4,19 +4,3 @@ gunicorn
 openai
 databricks-sql-connector
 requests
-# uvicorn
-# protobuf==3.20.0
-# streamlit==1.25.0
-# azure-storage-blob
-# PyYAML==6.0
-# databricks-sql-connector
-# pytz==2021.1
-# pyarrow==7.0.0
-# user-agents==2.2.0
-# st-annotated-text==2.0.0
-# streamlit-text-rating==0.1.5
-# streamlit-text-like
-# streamlit-widget-tracker==0.1.2
-# streamlit_authenticator==0.3.3
-# altair<5
-# streamlit-aggrid
