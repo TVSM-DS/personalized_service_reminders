@@ -147,7 +147,6 @@ def get_fallback_pitch(all_pitches, language="English"):
     if not all_pitches:
         return f"No pitches available. Please check the pitch data for {language}."
 
-    # Get all available segment names
     segment_names = list(all_pitches.keys())
 
     if not segment_names:
@@ -193,14 +192,12 @@ def generate_personalized_pitches():
     df = get_data_from_databricks(reg_no)
     pitch_dict = {}
     if len(df) == 0:
-        
         if duration == 60 :
             all_pitches = load_pitches_from_json()
         else:
             all_pitches = load_pitches_from_json("static_pitches_60sec.json")
-        for customer in customers:
-            pitch  = get_fallback_pitch(all_pitches, language="English")
-            pitch_dict = { 
+        pitch  = get_fallback_pitch(all_pitches, language="English")
+        pitch_dict = { 
             'customer_name': "NA",
             'segment_name': "NA",
             'model': "NA",
@@ -211,8 +208,8 @@ def generate_personalized_pitches():
             'registration_no': "NA",
             'pitch': pitch
             }
-            print(pitch_dict)
-            return jsonify(pitch_dict)
+        print(pitch_dict)
+        return jsonify(pitch_dict)
     customers_df = df[[
     "CUSTOMER_NAME",
     "DEALER_NAME",
