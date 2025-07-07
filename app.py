@@ -192,7 +192,7 @@ def generate_personalized_pitches():
     duration = data['duration']
     df = get_data_from_databricks(reg_no)
     pitch_dict = {}
-    if df == []:
+    if len(df) == 0:
         
         if duration == 60 :
             all_pitches = load_pitches_from_json()
