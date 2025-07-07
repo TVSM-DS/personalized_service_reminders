@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-import os, requests
+import os, requests, random
 import json
 import pandas as pd
 from databricks.sql import connect as databricks_connect
@@ -143,7 +143,27 @@ def generate_pitch(customer_name: str, customer_care_executive: str, customer_se
     except Exception as err:
         print(f"An unexpected error occurred: {err}")
         return f"An unexpected error occurred while generating the pitch: {err}"
- 
+def get_fallback_pitch(all_pitches, language="English"):
+    if not all_pitches:
+        return f"No pitches available. Please check the pitch data for {language}."
+
+    # Get all available segment names
+    segment_names = list(all_pitches.keys())
+
+    if not segment_names:
+        return f"No segments found in pitch data for {language}."
+
+    # Shuffle the segment names to ensure randomness
+    random.shuffle(segment_names)
+
+    # Iterate through segments to find one that has a pitch in the desired language
+    for segment in segment_names:
+        if language in all_pitches[segment]:
+            # Return the pitch for the first randomly found segment that has the language
+            return all_pitches[segment][language]
+
+    # Fallback if no pitch is found for the given language in any segment
+    return f"No pitch found for the language '{language}' across all segments."
 def load_pitches_from_json(file_path="static_pitches_60sec.json"):
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
@@ -171,6 +191,28 @@ def generate_personalized_pitches():
     platform = data['platform']
     duration = data['duration']
     df = get_data_from_databricks(reg_no)
+    pitch_dict = {}
+    if df == []:
+        
+        if duration == 60 :
+            all_pitches = load_pitches_from_json()
+        else:
+            all_pitches = load_pitches_from_json("static_pitches_60sec.json")
+        for customer in customers:
+            pitch  = get_fallback_pitch(all_pitches, language="English")
+            pitch_dict = { 
+            'customer_name': "NA",
+            'segment_name': "NA",
+            'model': "NA",
+            'vehicle_age': "NA",
+            'last_service_date': "NA",
+            'last_interaction_months': "NA",
+            'expected_service_date': "NA",
+            'registration_no': "NA",
+            'pitch': pitch
+            }
+            print(pitch_dict)
+            return jsonify(pitch_dict)
     customers_df = df[[
     "CUSTOMER_NAME",
     "DEALER_NAME",
@@ -187,7 +229,7 @@ def generate_personalized_pitches():
 ]].copy() 
     customers_df = customers_df.rename(columns={"LAST_INTERACTION": "last_interaction_months"})
     customers = customers_df.to_dict(orient='records')
-    pitch_dict = {}
+    
     if platform == "personalised_pitch":
         if duration == 60 :
             all_pitches = load_pitches_from_json()
