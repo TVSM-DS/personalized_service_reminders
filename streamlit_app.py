@@ -36,8 +36,9 @@ if st.button("🚀 Generate Pitch"):
         # Construct the payload for the Flask API with reg_no and language
         payload = {
             "reg_no": reg_no,
-            "language": selected_language,
-            "platform" : "personalised_pitch"
+            "lang": selected_language,
+            "platform" : "personalised_pitch",
+            "duration" : 60
         }
 
         st.info(f"Sending request for Registration Number: {reg_no}, Language: {selected_language}...")
