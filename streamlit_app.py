@@ -41,7 +41,7 @@ if st.button("🚀 Generate Pitch"):
         payload = {
             "reg_no": reg_no,
             "lang": selected_language,
-            "platform" : "personalised_pitch",
+            "platform" : "personalized_pitch",
             "duration" : selected_duration
         }
 
