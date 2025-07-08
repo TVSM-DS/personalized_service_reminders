@@ -38,7 +38,7 @@ if st.button("🚀 Generate Pitch"):
             "reg_no": reg_no,
             "lang": selected_language,
             "platform" : "personalised_pitch",
-            "duration" : 60
+            "duration" : "pitch_2min"
         }
 
         st.info(f"Sending request for Registration Number: {reg_no}, Language: {selected_language}...")

@@ -144,10 +144,10 @@ def generate_pitch(customer_name: str, customer_care_executive: str, customer_se
     except Exception as err:
         print(f"An unexpected error occurred: {err}")
         return f"An unexpected error occurred while generating the pitch: {err}"
-def get_fallback_pitch(all_pitches_list, language="English"):
+def get_fallback_pitch(all_pitches_list, duration, language="English"):
     available_pitches_in_language = [
-        entry.get('pitch_2min') for entry in all_pitches_list
-        if entry.get('language') == language and 'pitch_2min' in entry
+        entry.get(duration) for entry in all_pitches_list
+        if entry.get('language') == language and duration in entry
     ]
 
     if available_pitches_in_language:
@@ -196,7 +196,7 @@ def generate_personalized_pitches():
     pitch_dict = {}
     if len(df) == 0:
         pitches_data_list = load_pitches_from_json("reminder_pitches_30s_2mins_all_languages.json")
-        pitch  = get_fallback_pitch(pitches_data_list, lang)
+        pitch  = get_fallback_pitch(pitches_data_list,duration, lang)
         pitch_dict = { 
             'customer_name': "NA",
             'segment_name': "NA",
@@ -231,7 +231,7 @@ def generate_personalized_pitches():
 
         for customer in customers:
             #pitch = get_pitch(pitches_data_list, customer["segment_name"], lang)
-            pitch = get_pitch(pitches_data_list, customer["segment_name"], lang, "pitch_30s")
+            pitch = get_pitch(pitches_data_list, customer["segment_name"], lang, duration)
             #pitch = all_pitches[customer["segment_name"]][lang]
             pitch_dict = { 
             'customer_name': customer['CUSTOMER_NAME'],
