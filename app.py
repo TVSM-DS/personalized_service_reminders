@@ -176,7 +176,6 @@ def get_pitch(all_pitches_list, segment_name, language, pitch_type):
         return f"Invalid pitch_type: '{pitch_type}'. Must be 'pitch_30s' or 'pitch_2min'."
 
     for pitch_entry in all_pitches_list:
-        print(segment_name, language)
         if pitch_entry.get('segment') == segment_name and pitch_entry.get('language') == language:
             return pitch_entry.get(pitch_type, f"Pitch of type '{pitch_type}' not found for segment '{segment_name}' in '{language}'.")
     return f"Pitch not found for segment '{segment_name}' in '{language}'."
@@ -226,7 +225,7 @@ def generate_personalized_pitches():
         ]].copy() 
     customers_df = customers_df.rename(columns={"LAST_INTERACTION": "last_interaction_months"})
     customers = customers_df.to_dict(orient='records')
-    if platform == True:
+    if platform == "personalized_pitch":
         pitches_data_list = load_pitches_from_json("reminder_pitches_30s_2mins_all_languages.json")
 
         for customer in customers:
@@ -245,7 +244,7 @@ def generate_personalized_pitches():
             'pitch': pitch
             }
             print(pitch_dict)
-            jsonify(pitch_dict)
+            return jsonify(pitch_dict)
         
     
 
