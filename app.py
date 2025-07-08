@@ -1,3 +1,4 @@
+
 from flask import Flask, request, jsonify
 import os, requests, random
 import json
@@ -143,40 +144,42 @@ def generate_pitch(customer_name: str, customer_care_executive: str, customer_se
     except Exception as err:
         print(f"An unexpected error occurred: {err}")
         return f"An unexpected error occurred while generating the pitch: {err}"
-def get_fallback_pitch(all_pitches, language="English"):
-    if not all_pitches:
-        return f"No pitches available. Please check the pitch data for {language}."
+def get_fallback_pitch(all_pitches_list, language="English"):
+    available_pitches_in_language = [
+        entry.get('pitch_2min') for entry in all_pitches_list
+        if entry.get('language') == language and 'pitch_2min' in entry
+    ]
 
-    segment_names = list(all_pitches.keys())
+    if available_pitches_in_language:
+        return random.choice(available_pitches_in_language)
+    else:
+        return f"No random fallback pitch found for language '{language}'."
 
-    if not segment_names:
-        return f"No segments found in pitch data for {language}."
-
-    # Shuffle the segment names to ensure randomness
-    random.shuffle(segment_names)
-
-    # Iterate through segments to find one that has a pitch in the desired language
-    for segment in segment_names:
-        if language in all_pitches[segment]:
-            # Return the pitch for the first randomly found segment that has the language
-            return all_pitches[segment][language]
-
-    # Fallback if no pitch is found for the given language in any segment
-    return f"No pitch found for the language '{language}' across all segments."
-def load_pitches_from_json(file_path="static_pitches_60sec.json"):
+def load_pitches_from_json(file_path="reminder_pitches_30s_2mins_all_languages.json"):
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
-            pitches_data = json.load(f)
-        return pitches_data
+            data = json.load(f)
+            return data.get('pitches', []) # Access the 'pitches' key which contains the list
     except FileNotFoundError:
         print(f"Error: The file '{file_path}' was not found.")
-        return {}
+        return []
     except json.JSONDecodeError:
         print(f"Error: Could not decode JSON from '{file_path}'. Check file format.")
-        return {}
+        return []
     except Exception as e:
         print(f"An unexpected error occurred while loading the JSON file: {e}")
-        return {} 
+        return []
+
+def get_pitch(all_pitches_list, segment_name, language, pitch_type):
+    # Ensure pitch_type is valid
+    if pitch_type not in ["pitch_30s", "pitch_2min"]:
+        return f"Invalid pitch_type: '{pitch_type}'. Must be 'pitch_30s' or 'pitch_2min'."
+
+    for pitch_entry in all_pitches_list:
+        print(segment_name, language)
+        if pitch_entry.get('segment') == segment_name and pitch_entry.get('language') == language:
+            return pitch_entry.get(pitch_type, f"Pitch of type '{pitch_type}' not found for segment '{segment_name}' in '{language}'.")
+    return f"Pitch not found for segment '{segment_name}' in '{language}'."
 
 app = Flask('personalized_pitch')
 @app.route('/', methods=['GET'])
@@ -192,11 +195,8 @@ def generate_personalized_pitches():
     df = get_data_from_databricks(reg_no)
     pitch_dict = {}
     if len(df) == 0:
-        if duration == 60 :
-            all_pitches = load_pitches_from_json()
-        else:
-            all_pitches = load_pitches_from_json("static_pitches_60sec.json")
-        pitch  = get_fallback_pitch(all_pitches, language="English")
+        pitches_data_list = load_pitches_from_json("reminder_pitches_30s_2mins_all_languages.json")
+        pitch  = get_fallback_pitch(pitches_data_list, lang)
         pitch_dict = { 
             'customer_name': "NA",
             'segment_name': "NA",
@@ -223,17 +223,16 @@ def generate_personalized_pitches():
     "EXPECTED_SERVICE_DATE",
     "N_VISIT_DATE",
     "REG_NO"
-]].copy() 
+        ]].copy() 
     customers_df = customers_df.rename(columns={"LAST_INTERACTION": "last_interaction_months"})
     customers = customers_df.to_dict(orient='records')
-    
-    if platform == "personalised_pitch":
-        if duration == 60 :
-            all_pitches = load_pitches_from_json()
-        else:
-            all_pitches = load_pitches_from_json("static_pitches_60sec.json")
+    if platform == "personalized_pitch":
+        pitches_data_list = load_pitches_from_json("reminder_pitches_30s_2mins_all_languages.json")
+
         for customer in customers:
-            pitch = all_pitches[customer["segment_name"]][lang]
+            #pitch = get_pitch(pitches_data_list, customer["segment_name"], lang)
+            pitch = get_pitch(pitches_data_list, customer["segment_name"], lang, "pitch_30s")
+            #pitch = all_pitches[customer["segment_name"]][lang]
             pitch_dict = { 
             'customer_name': customer['CUSTOMER_NAME'],
             'segment_name': customer['segment_name'],
@@ -246,7 +245,7 @@ def generate_personalized_pitches():
             'pitch': pitch
             }
             print(pitch_dict)
-            return jsonify(pitch_dict)
+            jsonify(pitch_dict)
         
     
 
@@ -293,7 +292,3 @@ def generate_personalized_pitches():
 
 if __name__ == '__main__':
     app.run()
-    
-    # with app.app_context():
-    #     print(generate_personalized_pitches("KA45EC0087"))
-    #     app.run(host='0.0.0.0', port=5000, debug=True)
