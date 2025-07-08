@@ -184,7 +184,7 @@ def get_pitch(all_pitches_list, segment_name, language, pitch_type):
 app = Flask('personalized_pitch')
 @app.route('/', methods=['GET'])
 def hello():
-    return jsonify({"message": "Personalized service remainder running!!!!54"})
+    return jsonify({"message": "Personalized service remainder running!!!!544"})
 @app.route('/smr/segmentation/pitches', methods=['POST'])
 def generate_personalized_pitches():
     data = request.get_json()
@@ -226,7 +226,7 @@ def generate_personalized_pitches():
         ]].copy() 
     customers_df = customers_df.rename(columns={"LAST_INTERACTION": "last_interaction_months"})
     customers = customers_df.to_dict(orient='records')
-    if platform == "personalized_pitch":
+    if platform == True:
         pitches_data_list = load_pitches_from_json("reminder_pitches_30s_2mins_all_languages.json")
 
         for customer in customers:

@@ -12,7 +12,7 @@ PITCH_GENERATION_ENDPOINT = f"{FLASK_API_BASE_URL}/smr/segmentation/pitches"
 
 # Define the list of available languages
 LANGUAGES = ["English", "Hindi", "Tamil", "Telugu", "Marathi", "Bengali", "Kannada"]
-
+DURATION = ["pitch_30s", "pitch_2min"]
 # --- Streamlit UI ---
 st.set_page_config(layout="centered", page_title="TVS Personalized Service Reminder")
 
@@ -20,15 +20,19 @@ st.title("TVS Personalized Service Reminder")
 
 # Input for Registration Number
 reg_no = st.text_input("Please Enter Vehicle Registration Number.", value="KA45EC0087", help="Vehicle Registration Number (e.g., KA45EC0087).")
-
-# Dropdown for Language Selection
 selected_language = st.selectbox(
-    "Select Language for Pitch:",
+    "Select Language For Pitch:",
     LANGUAGES,
     index=0, # Default to English
     help="Choose the language in which you want the reminder pitch."
 )
-
+# Input for duration
+selected_duration = st.selectbox(
+    "Select Pitch's Duration:",
+    DURATION,
+    index=0, # Default to English
+    help="Choose duration for pitch."
+)
 if st.button("🚀 Generate Pitch"):
     if not reg_no:
         st.error("Please enter a Registration Number.")
@@ -38,7 +42,7 @@ if st.button("🚀 Generate Pitch"):
             "reg_no": reg_no,
             "lang": selected_language,
             "platform" : "personalised_pitch",
-            "duration" : "pitch_2min"
+            "duration" : selected_duration
         }
 
         st.info(f"Sending request for Registration Number: {reg_no}, Language: {selected_language}...")
