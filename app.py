@@ -37,7 +37,7 @@ def get_data_from_databricks(reg_no: str):
 def generate_pitch(customer_name: str, customer_care_executive: str, customer_segment: str, remaining_amc_services: float,
                    expected_service_type: str, last_interaction_months: int,
                    sale_series: str, customer_type: str,
-                   endpoint: str, deployment: str, subscription_key: str, api_version: str) -> str:
+                   endpoint: str, deployment: str, subscription_key: str, api_version: str, lang: str="English") -> str:
     base_prompt = """You are a helpful assistant trained to support Customer Care Executives (CCEs) at TVS Motor Company.
             These CCEs are typically 10th to 12th pass and speak to customers over the phone to remind them about upcoming or overdue vehicle services.
             Your job is to generate 5 simple, spoken-style pitch points that a CCE can use during a follow-up call to:
@@ -115,7 +115,9 @@ def generate_pitch(customer_name: str, customer_care_executive: str, customer_se
     full_prompt = (
         f"{base_prompt.format(customer_name=customer_name, dealer_name=customer_care_executive, sale_series=sale_series, last_interaction_months=last_interaction_months)} "
         f"{segment_specific_guidance.get(customer_segment, '').format(customer_name=customer_name, sale_series=sale_series, expected_service_type=expected_service_type, last_interaction_months=last_interaction_months, remaining_amc_services=remaining_amc_services)} "
-        "Provide the 5 points in a concise, bulleted list format, suitable for a phone call."
+        "Provide the 5 points in a concise, bulleted list format, suitable for a phone call. "
+        "Don't combine sentance like 'Certainly! Here are five simple pitch points a Customer Care Executive can use during a follow-up call' in output. "
+        "Translate pitch in {} language".format(lang)
     )
 
 
@@ -266,7 +268,8 @@ def generate_personalized_pitches():
             endpoint=endpoint,
             deployment=deployment,
             subscription_key=subscription_key,
-            api_version=api_version
+            api_version=api_version,
+            lang=lang
         )
         print(f"\n--- Customer Care Executive: {customer['DEALER_NAME']}  Customer: {customer['CUSTOMER_NAME']} ({customer['segment_name']}) ---")
         print(f"Vehicle: {customer['SALE_SERIES']}, Last Interaction: {customer['last_interaction_months']} months ago, AMC: {customer['REMAINING_AMC_SERVICES']}, Expected: {customer['EXPECTED_SERVICE_TYPE']}")
