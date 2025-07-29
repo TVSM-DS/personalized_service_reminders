@@ -4,7 +4,10 @@ import os, requests, random
 import json
 import pandas as pd
 from databricks.sql import connect as databricks_connect
+from dotenv import load_dotenv
+load_dotenv()
 app = Flask('personalized_pitch')
+
 DB_SERVER_HOSTNAME = os.getenv("DATABRICKS_SERVER_HOSTNAME")
 DB_HTTP_PATH = os.getenv("DATABRICKS_HTTP_PATH")
 DB_ACCESS_TOKEN = os.getenv("DATABRICKS_TOKEN")
@@ -157,7 +160,7 @@ def get_fallback_pitch(all_pitches_list, duration, language="English"):
     else:
         return f"No random fallback pitch found for language '{language}'."
 
-def load_pitches_from_json(file_path="reminder_pitches_30s_2mins_all_languages.json"):
+def load_pitches_from_json(file_path="TVS_AllLanguages_Pitches_Complete.json"):
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
@@ -185,18 +188,17 @@ def get_pitch(all_pitches_list, segment_name, language, pitch_type):
 app = Flask('personalized_pitch')
 @app.route('/', methods=['GET'])
 def hello():
-    return jsonify({"message": "Personalized service remainder running!!!!544"})
+    return jsonify({"message": "Personalized service remainder running.!!!!"})
 @app.route('/smr/segmentation/pitches', methods=['POST'])
-def generate_personalized_pitches():
+def generate_static_personalized_pitches():
     data = request.get_json()
     reg_no = data['reg_no']
     lang = data['lang']  
-    platform = data['platform']
     duration = data['duration']
     df = get_data_from_databricks(reg_no)
     pitch_dict = {}
     if len(df) == 0:
-        pitches_data_list = load_pitches_from_json("reminder_pitches_30s_2mins_all_languages.json")
+        pitches_data_list = load_pitches_from_json("TVS_AllLanguages_Pitches_Complete.json")
         pitch  = get_fallback_pitch(pitches_data_list,duration, lang)
         pitch_dict = { 
             'customer_name': "NA",
@@ -228,7 +230,7 @@ def generate_personalized_pitches():
     customers_df = customers_df.rename(columns={"LAST_INTERACTION": "last_interaction_months"})
     customers = customers_df.to_dict(orient='records')
     if platform == "personalized_pitch":
-        pitches_data_list = load_pitches_from_json("reminder_pitches_30s_2mins_all_languages.json")
+        pitches_data_list = load_pitches_from_json("TVS_AllLanguages_Pitches_Complete.json")
 
         for customer in customers:
             #pitch = get_pitch(pitches_data_list, customer["segment_name"], lang)
@@ -291,6 +293,86 @@ def generate_personalized_pitches():
         }
         print(pitch_dict)
     return jsonify(pitch_dict)
+@app.route('/smr/segmentation/generate/pitches', methods=['POST'])
+def generate_dynamic_personalized_pitches():
+    data = request.get_json()
+    reg_no = data['reg_no']
+    lang = data['lang']  
+    duration = data['duration']
+    df = get_data_from_databricks(reg_no)
+    pitch_dict = {}
+    if len(df) == 0:
+        pitches_data_list = load_pitches_from_json("TVS_AllLanguages_Pitches_Complete.json")
+        pitch  = get_fallback_pitch(pitches_data_list,duration, lang)
+        pitch_dict = { 
+            'customer_name': "NA",
+            'segment_name': "NA",
+            'model': "NA",
+            'vehicle_age': "NA",
+            'last_service_date': "NA",
+            'last_interaction_months': "NA",
+            'expected_service_date': "NA",
+            'registration_no': "NA",
+            'pitch': pitch
+            }
+        print(pitch_dict)
+        return jsonify(pitch_dict)
+    customers_df = df[[
+    "CUSTOMER_NAME",
+    "DEALER_NAME",
+    "segment_name",
+    "REMAINING_AMC_SERVICES",
+    "EXPECTED_SERVICE_TYPE",
+    "LAST_INTERACTION",
+    "SALE_SERIES",
+    "CUSTOMER_TYPE",
+    "VEHICLE_AGE_YEAR",
+    "EXPECTED_SERVICE_DATE",
+    "N_VISIT_DATE",
+    "REG_NO"
+        ]].copy() 
+    customers_df = customers_df.rename(columns={"LAST_INTERACTION": "last_interaction_months"})
+    customers = customers_df.to_dict(orient='records')
+    
+    endpoint = os.getenv("ENDPOINT_URL")
+    deployment = os.getenv("DEPLOYMENT_NAME")
+    subscription_key = os.getenv("AZURE_OPENAI_API_KEY")
+    api_version="2025-01-01-preview"
+    for customer in customers:
+        pitch = generate_pitch(
+            customer_name=customer["CUSTOMER_NAME"],
+            customer_care_executive=customer["DEALER_NAME"],
+            customer_segment=customer["segment_name"],
+            remaining_amc_services=customer["REMAINING_AMC_SERVICES"],
+            expected_service_type=customer["EXPECTED_SERVICE_TYPE"],
+            last_interaction_months=customer["last_interaction_months"],
+            sale_series=customer["SALE_SERIES"],
+            customer_type=customer["CUSTOMER_TYPE"],
+            endpoint=endpoint,
+            deployment=deployment,
+            subscription_key=subscription_key,
+            api_version=api_version,
+            lang=lang
+        )
+        print(f"\n--- Customer Care Executive: {customer['DEALER_NAME']}  Customer: {customer['CUSTOMER_NAME']} ({customer['segment_name']}) ---")
+        print(f"Vehicle: {customer['SALE_SERIES']}, Last Interaction: {customer['last_interaction_months']} months ago, AMC: {customer['REMAINING_AMC_SERVICES']}, Expected: {customer['EXPECTED_SERVICE_TYPE']}")
+        print(f"Pitch Points: {pitch}")
+        print("----------------------------------------------------------------")
 
+        
+        
+        pitch_dict = { 
+            'customer_name': customer['CUSTOMER_NAME'],
+            'segment_name': customer['segment_name'],
+            'model': customer['SALE_SERIES'],
+            'vehicle_age': customer['VEHICLE_AGE_YEAR'],
+            'last_service_date': customer['N_VISIT_DATE'],
+            'last_interaction_months': customer['last_interaction_months'],
+            'expected_service_date': customer['EXPECTED_SERVICE_DATE'],
+            'registration_no': customer['REG_NO'],
+            'pitch': pitch
+        }
+        print(pitch_dict)
+    return jsonify(pitch_dict)
 if __name__ == '__main__':
     app.run()
