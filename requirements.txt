@@ -4,3 +4,4 @@ gunicorn
 openai
 databricks-sql-connector
 requests
+dotenv
