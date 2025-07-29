@@ -4,8 +4,8 @@ import os, requests, random
 import json
 import pandas as pd
 from databricks.sql import connect as databricks_connect
-from dotenv import load_dotenv
-load_dotenv()
+# from dotenv import load_dotenv
+# load_dotenv()
 app = Flask('personalized_pitch')
 
 DB_SERVER_HOSTNAME = os.getenv("DATABRICKS_SERVER_HOSTNAME")
