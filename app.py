@@ -4,13 +4,14 @@ import os, requests, random
 import json
 import pandas as pd
 from databricks.sql import connect as databricks_connect
-# from dotenv import load_dotenv
-# load_dotenv()
+from dotenv import load_dotenv
+load_dotenv()
 app = Flask('personalized_pitch')
 
 DB_SERVER_HOSTNAME = os.getenv("DATABRICKS_SERVER_HOSTNAME")
 DB_HTTP_PATH = os.getenv("DATABRICKS_HTTP_PATH")
 DB_ACCESS_TOKEN = os.getenv("DATABRICKS_TOKEN")
+print("DB_SERVER_HOSTNAME ",DB_SERVER_HOSTNAME)
 def get_data_from_databricks(reg_no: str):
     query = f"SELECT * FROM vision_dev.sandbox.map_t_srv_mrkt_smr_all_dealers_daily_digi_app_july_2025_version_6_cluster WHERE REG_NO = '{reg_no}'"
     if not all([DB_SERVER_HOSTNAME, DB_HTTP_PATH, DB_ACCESS_TOKEN]):
@@ -229,10 +230,9 @@ def generate_static_personalized_pitches():
         ]].copy() 
     customers_df = customers_df.rename(columns={"LAST_INTERACTION": "last_interaction_months"})
     customers = customers_df.to_dict(orient='records')
-    if platform == "personalized_pitch":
-        pitches_data_list = load_pitches_from_json("TVS_AllLanguages_Pitches_Complete.json")
+    pitches_data_list = load_pitches_from_json("TVS_AllLanguages_Pitches_Complete.json")
 
-        for customer in customers:
+    for customer in customers:
             #pitch = get_pitch(pitches_data_list, customer["segment_name"], lang)
             pitch = get_pitch(pitches_data_list, customer["segment_name"], lang, duration)
             #pitch = all_pitches[customer["segment_name"]][lang]
@@ -251,48 +251,6 @@ def generate_static_personalized_pitches():
             return jsonify(pitch_dict)
         
     
-
-    
-    endpoint = os.getenv("ENDPOINT_URL")
-    deployment = os.getenv("DEPLOYMENT_NAME")
-    subscription_key = os.getenv("AZURE_OPENAI_API_KEY")
-    api_version="2025-01-01-preview"
-    for customer in customers:
-        pitch = generate_pitch(
-            customer_name=customer["CUSTOMER_NAME"],
-            customer_care_executive=customer["DEALER_NAME"],
-            customer_segment=customer["segment_name"],
-            remaining_amc_services=customer["REMAINING_AMC_SERVICES"],
-            expected_service_type=customer["EXPECTED_SERVICE_TYPE"],
-            last_interaction_months=customer["last_interaction_months"],
-            sale_series=customer["SALE_SERIES"],
-            customer_type=customer["CUSTOMER_TYPE"],
-            endpoint=endpoint,
-            deployment=deployment,
-            subscription_key=subscription_key,
-            api_version=api_version,
-            lang=lang
-        )
-        print(f"\n--- Customer Care Executive: {customer['DEALER_NAME']}  Customer: {customer['CUSTOMER_NAME']} ({customer['segment_name']}) ---")
-        print(f"Vehicle: {customer['SALE_SERIES']}, Last Interaction: {customer['last_interaction_months']} months ago, AMC: {customer['REMAINING_AMC_SERVICES']}, Expected: {customer['EXPECTED_SERVICE_TYPE']}")
-        print(f"Pitch Points: {pitch}")
-        print("----------------------------------------------------------------")
-
-        
-        
-        pitch_dict = { 
-            'customer_name': customer['CUSTOMER_NAME'],
-            'segment_name': customer['segment_name'],
-            'model': customer['SALE_SERIES'],
-            'vehicle_age': customer['VEHICLE_AGE_YEAR'],
-            'last_service_date': customer['N_VISIT_DATE'],
-            'last_interaction_months': customer['last_interaction_months'],
-            'expected_service_date': customer['EXPECTED_SERVICE_DATE'],
-            'registration_no': customer['REG_NO'],
-            'pitch': pitch
-        }
-        print(pitch_dict)
-    return jsonify(pitch_dict)
 @app.route('/smr/segmentation/generate/pitches', methods=['POST'])
 def generate_dynamic_personalized_pitches():
     data = request.get_json()
