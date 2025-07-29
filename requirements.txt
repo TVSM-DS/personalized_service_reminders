@@ -1,4 +1,4 @@
-# uvicorn
+dotenv
 Flask
 gunicorn
 openai
