@@ -31,7 +31,17 @@ def get_data_from_databricks(reg_no: str):
                 cursor.execute(query)
                 results = cursor.fetchall()
                 columns = [desc[0] for desc in cursor.description]
-                return pd.DataFrame(results, columns=columns)
+                df = pd.DataFrame(results, columns=columns)
+                segment_map = {
+                    0: "Free Service Maximizers",
+                    1: "Frequent Service Seekers",
+                    2: "Paid Service Skippers",
+                    3: "Routine Maintainers",
+                    4: "Lapsed Users (RF/Cash)",
+                    5: "Lapsed Users (RF/Cash)",
+                }
+                df["segment_name"] = df["prediction"].map(segment_map)
+                return df
 
     except Exception as e:
         import traceback
@@ -150,22 +160,30 @@ def generate_pitch(customer_name: str, customer_care_executive: str, customer_se
     except Exception as err:
         print(f"An unexpected error occurred: {err}")
         return f"An unexpected error occurred while generating the pitch: {err}"
-def get_fallback_pitch(all_pitches_list, duration, language="English"):
-    available_pitches_in_language = [
-        entry.get(duration) for entry in all_pitches_list
-        if entry.get('language') == language and duration in entry
-    ]
+def get_fallback_pitch(data, pitch_type, language="English"):
+    if pitch_type not in ["pitch_30s", "pitch_2min"]:
+        return f"Invalid pitch type: {pitch_type}. Must be 'pitch_30s' or 'pitch_2min'."
 
-    if available_pitches_in_language:
-        return random.choice(available_pitches_in_language)
-    else:
-        return f"No random fallback pitch found for language '{language}'."
+    for lang_block in data:
+        if lang_block.get("language") == language:
+            pitches = [
+                pitch.get(pitch_type)
+                for pitch in lang_block.get("pitches", [])
+                if pitch_type in pitch
+            ]
+            if pitches:
+                return random.choice(pitches)
+            else:
+                return f"No '{pitch_type}' pitches available in '{language}'."
+    
+    return f"No pitch data found for language '{language}'."
+
 
 def load_pitches_from_json(file_path="TVS_AllLanguages_Pitches_Complete.json"):
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
-            return data.get('pitches', []) # Access the 'pitches' key which contains the list
+        return data
     except FileNotFoundError:
         print(f"Error: The file '{file_path}' was not found.")
         return []
@@ -176,14 +194,18 @@ def load_pitches_from_json(file_path="TVS_AllLanguages_Pitches_Complete.json"):
         print(f"An unexpected error occurred while loading the JSON file: {e}")
         return []
 
-def get_pitch(all_pitches_list, segment_name, language, pitch_type):
-    # Ensure pitch_type is valid
+def get_pitch(data, segment_name, language, pitch_type):
+    #segment_name = "Free Service Maximizers"#segment.replace("_", " ").title()
+    print(f"Fetching pitch for segment: {segment_name}, language: {language}, pitch type: {pitch_type}")
     if pitch_type not in ["pitch_30s", "pitch_2min"]:
-        return f"Invalid pitch_type: '{pitch_type}'. Must be 'pitch_30s' or 'pitch_2min'."
+        print(f"Invalid pitch type: {pitch_type}. Must be 'pitch_30s' or 'pitch_2min'.")
+        return None
 
-    for pitch_entry in all_pitches_list:
-        if pitch_entry.get('segment') == segment_name and pitch_entry.get('language') == language:
-            return pitch_entry.get(pitch_type, f"Pitch of type '{pitch_type}' not found for segment '{segment_name}' in '{language}'.")
+    for lang_block in data:
+        if lang_block.get("language") == language:
+            for pitch in lang_block.get("pitches", []):
+                if pitch.get("segment") == segment_name:
+                    return pitch.get(pitch_type)
     return f"Pitch not found for segment '{segment_name}' in '{language}'."
 
 app = Flask('personalized_pitch')
@@ -233,10 +255,8 @@ def generate_static_personalized_pitches():
     pitches_data_list = load_pitches_from_json("TVS_AllLanguages_Pitches_Complete.json")
 
     for customer in customers:
-            #pitch = get_pitch(pitches_data_list, customer["segment_name"], lang)
-            pitch = get_pitch(pitches_data_list, customer["segment_name"], lang, duration)
-            #pitch = all_pitches[customer["segment_name"]][lang]
-            pitch_dict = { 
+        pitch = get_pitch(pitches_data_list, customer["segment_name"], lang, duration)
+        pitch_dict = { 
             'customer_name': customer['CUSTOMER_NAME'],
             'segment_name': customer['segment_name'],
             'model': customer['SALE_SERIES'],
@@ -247,8 +267,8 @@ def generate_static_personalized_pitches():
             'registration_no': customer['REG_NO'],
             'pitch': pitch
             }
-            print(pitch_dict)
-            return jsonify(pitch_dict)
+        print(pitch_dict)
+        return jsonify(pitch_dict)
         
     
 @app.route('/smr/segmentation/generate/pitches', methods=['POST'])
